@@ -4,7 +4,7 @@ library(cmdstanr)
 library(bayesplot)
 
 n <- 60
-raw_time <-rgamma(n, 3, 1)
+raw_time <-rexp(n, 1/10)
 
 hist(raw_time)
 
@@ -53,7 +53,7 @@ train_test_split <- function(d, cut_time) {
 }
 
 
-data <- train_test_split(d, 4)
+data <- train_test_split(d, 20)
 model <- cmdstan_model(stan_file = 'stan/model_2.stan')
 
 fit <- model$sample(data$stan_data, parallel_chains = parallel::detectCores(), adapt_delta=0.99)
@@ -81,8 +81,8 @@ fit %>%
     shape = 21
   ) + 
   stat_function(
-    fun=pgamma,
-    args = list(shape=3, rate=1, lower.tail=F),
+    fun=pexp,
+    args = list(rate=1/10, lower.tail=F),
     color='red'
   )
 

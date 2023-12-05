@@ -2,7 +2,7 @@ library(cmdstanr)
 library(tidyverse)
 library(tidybayes)
 library(survival)
-
+library(bayesplot)
 model_data <- veteran %>% 
               select(trt, time, status) %>% 
               rename(censored=status,
@@ -20,18 +20,18 @@ stan_data$mu_scale <- 1
 
 
 # Encourage an exponential fit.
-stan_data$sigma_df <- 30
+stan_data$sigma_df <- 1
 stan_data$sigma_loc <- 1
 stan_data$sigma_scale <- 1
 
 
-stan_data$k_df <- 30
+stan_data$k_df <- 10
 stan_data$k_loc <- 1
 stan_data$k_scale <- 1
 
 
-stan_data$nt <- 100
-stan_data$pred_time <- 250 * ppoints(stan_data$nt)
+stan_data$nt <- 500
+stan_data$pred_time <- 500 * ppoints(stan_data$nt)
 
 model <- cmdstanr::cmdstan_model('stan/right_censoring_survival.stan')
 
@@ -55,26 +55,45 @@ pred <- fit %>%
   select(time, cohort, survival_function) %>% 
   spread(cohort, survival_function)
 
-
-plot(
-  pred$time, 
-  pred$cohort_1, 
-  type='l',
-  col='red'
-)
-
-lines(
-  pred$time, 
-  pred$cohort_2, 
-  col='blue'
-)
-
 # plot KM over the survival curves
 km_1 <- survfit(Surv(time, status) ~ strata(trt), data=filter(veteran, trt==1))
 km_2 <- survfit(Surv(time, status) ~ strata(trt), data=filter(veteran, trt==2))
 
 
-lines(km_1$time, km_1$surv, col='red', lty=2)
-lines(km_2$time, km_2$surv, col='blue', lty=2)
+par(mfrow = c(2, 1))
+plot(
+  pred$time, 
+  log(pred$cohort_1), 
+  type='l',
+  col='red',
+  ylab = expression(log(S(t))),
+  xlab='t'
+)
 
+lines(km_1$time, log(km_1$surv), col='red', lty=2)
+
+legend(
+  'topright',
+  legend=c('Bayes','Kaplan Meir'),
+  lty=c(1, 2),
+  col=c('red','red')
+)
+
+
+plot(
+  pred$time, 
+  log(pred$cohort_2), 
+  col='blue', 
+  type='l',
+  ylab = expression(log(S(t))),
+  xlab='t'
+)
+lines(km_2$time, log(km_2$surv), col='blue', lty=2)
+
+legend(
+  'topright',
+  legend=c('Bayes','Kaplan Meir'),
+  lty=c(1, 2),
+  col=c('blue', 'blue')
+)
 

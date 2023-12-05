@@ -32,6 +32,7 @@ parameters {
   vector<lower=0>[n_cohort] sigma;
 }
 model {
+  // TODO: Vectorize pdfs, cdfs, ccdfs
   mu ~ student_t(mu_df, mu_loc, mu_scale);
   sigma ~ student_t(sigma_df, sigma_loc, sigma_scale);
   k ~ student_t(k_df, k_loc, k_scale);

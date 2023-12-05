@@ -8,19 +8,25 @@ data {
   array[n] int time_lower;
   array[n] int time_upper;
   array[n] int wt;
+  array[n] int censored;
   
   // Hyperparameters for priors.
   real<lower=0> mu_df;
+  real<lower=0> mu_loc;
+  real<lower=0> mu_scale;
+  
   real<lower=0> sigma_df;
+  real<lower=0> sigma_loc;
+  real<lower=0> sigma_scale;
+  
   real<lower=0> k_df;
+  real<lower=0> k_loc;
+  real<lower=0> k_scale;
   
   // Data for predicting the survival curves
   int nt;
   array[nt] real pred_time;
   
-}
-transformed data {
-  int trunctation_time = max(time_lower);
 }
 parameters {
   vector<lower=0>[n_cohort] mu;
@@ -28,13 +34,14 @@ parameters {
   vector<lower=0>[n_cohort] sigma;
 }
 model {
-  mu ~ student_t(df, 0, 1);
-  sigma ~ student_t(df, 0, 1);
-  k ~  student_t(df, 0, 1);
+  // TODO: Vectorize pdfs, cdfs, ccdfs
+  mu ~ student_t(mu_df, mu_loc, mu_scale);
+  sigma ~ student_t(sigma_df, sigma_loc, sigma_scale);
+  k ~ student_t(k_df, k_loc, k_scale);
   
   for (i in 1:n){
     
-      if(time_lower[i]==trunctation_time){
+      if(censored[i]==1){
           // If the lower time is the largest it can be (and there is no upper time as a consequence)
           // Increment the target by the log probability that the survival time is above truncation_time
           target += wt[i] * lawless_generalized_gamma_lccdf(time_lower[i]| k[cohort[i]], mu[cohort[i]], sigma[cohort[i]]);
